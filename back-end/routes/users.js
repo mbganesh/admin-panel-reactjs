@@ -7,7 +7,7 @@ const SubModel = require("../Models/SubjectSelectedModel");
 
 mongoose.connect("mongodb://localhost/admin_panel");
 
-/* GET users listing. */
+
 router.get("/", function (req, res, next) {
   res.send("respond with a resource");
 });
@@ -135,6 +135,13 @@ router.post('/subject_edit_api' , async (req , res) => {
     res.json({message:subName + ' deleted.'})
   }
 
+})
+
+
+router.post('/unit_api' , async (req , res) => {
+  let myData = req.body;
+
+  console.log(myData);
 })
 
 module.exports = router;
