@@ -1,56 +1,140 @@
-var express = require('express');
+var express = require("express");
 var router = express.Router();
-var AdminModel = require('../Models/AdminLoginModel')
-var mongoose = require('mongoose');
-var BoardModel = require('../Models/BoardSelectionModel')
+var AdminModel = require("../Models/AdminLoginModel");
+var mongoose = require("mongoose");
+var BoardModel = require("../Models/BoardSelectionModel");
+const SubModel = require("../Models/SubjectSelectedModel");
 
-mongoose.connect('mongodb://localhost/admin_panel')
+mongoose.connect("mongodb://localhost/admin_panel");
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+router.get("/", function (req, res, next) {
+  res.send("respond with a resource");
 });
 
+router.post("/admin-login", async (req, res) => {
+  let data = req.body;
 
-router.post('/admin-login' , async (req , res) => {
-  let data = req.body
-  
   console.log(data);
 
-  let foundAuth = await AdminModel.findOne({})
+  let foundAuth = await AdminModel.findOne({});
 
   console.log(foundAuth);
 
-  if(foundAuth.length === 0){
-    let LoginModel = await AdminModel.insertMany(data)
+  if (foundAuth.length === 0) {
+    let LoginModel = await AdminModel.insertMany(data);
 
-    res.json({message:'Login Success' , success:true})
+    res.json({ message: "Login Success", success: true });
     return;
-  }else{
-    let user = foundAuth['userName']
-    let pass = foundAuth['passWord']
+  } else {
+    let user = foundAuth["userName"];
+    let pass = foundAuth["passWord"];
 
-    if(user === data['userName'] && pass === data['passWord']){
-      res.json({message:'Login Success' , success:true})
-    }else{
-      res.json({message:'Invalid UserName or PassWord' , success:false})
+    if (user === data["userName"] && pass === data["passWord"]) {
+      res.json({ message: "Login Success", success: true });
+    } else {
+      res.json({ message: "Invalid UserName or PassWord", success: false });
     }
 
     return;
   }
+});
+
+router.post("/board_selection", async (req, res) => {
+  let data = req.body;
+  var foundAuth = await AdminModel.findOne({});
+  if (
+    foundAuth["userName"] === data["userName"] &&
+    foundAuth["passWord"] === data["passWord"]
+  ) {
+    var foundBoard = await BoardModel.findOne({}, { _id: 0 });
+    res.json({ message: foundBoard, success: true });
+  } else {
+    res.json({ message: "Please Check UserName and PassWord", success: false });
+  }
+});
+
+router.post("/subject_api", async (req, res) => {
+  let subDetails = req.body.subDetails;
+  let subName = req.body.subName;
+
+  var myBoard = subDetails["board"];
+  var myMedium = subDetails["medium"];
+  var myClass = subDetails["class"];
+  var mySubject = [];
+
+  var obj = {
+    myBoard: myBoard,
+    myClass: myClass,
+    myMedium: myMedium,
+    mySubject: mySubject,
+  };
+
+  let SubjectModel = await SubModel.find({});
+
+  if (SubjectModel.length === 0) {
+    let StoreFirstData = await SubModel.insertMany(obj);
+    console.log(StoreFirstData);
+    console.log("StoreFirstData");
+  } else {
+    console.log("UpdateData");
+
+    let foundData = await SubModel.find( { myBoard: myBoard, myClass: myClass, myMedium: myMedium },  { _id: 0, __v: 0 })
+
+    console.log(foundData);
+
+    if (foundData.length === 0) {
+      let StoreSecondData = await SubModel.insertMany(obj);
+      console.log(StoreSecondData);
+      console.log("StoreSecondData");
+    } 
+    
+    if(subName !== ''){
+      let updateData = await SubModel.findOneAndUpdate(
+        { myBoard: myBoard, myClass: myClass, myMedium: myMedium },
+        { $push: { mySubject: subName } },
+        { _id: 0, __v: 0 }
+      );
+      console.log(updateData);
+    }
+  }
+
+  res.json({ message: "Api Works" });
+});
 
 
+router.post('/subject_list_api' , async (req , res) => {
+  let subDetails = req.body.subDetails;
+
+  var myBoard = subDetails["board"];
+  var myMedium = subDetails["medium"];
+  var myClass = subDetails["class"];
+
+  let foundData = await SubModel.findOne( { myBoard: myBoard, myClass: myClass, myMedium: myMedium },  { _id: 0, __v: 0 })
+
+  res.json(foundData)
 })
 
-router.post('/board_selection' , async (req , res) => {
-  let data = req.body
-  var foundAuth = await AdminModel.findOne({}) 
-  if(foundAuth['userName'] === data['userName'] && foundAuth['passWord'] === data['passWord']){
-    var foundBoard = await BoardModel.findOne({} , {_id:0})
-    res.json({message:foundBoard , success:true})
-  }else{
-    res.json({message:'Please Check UserName and PassWord' , success:false})
+router.post('/subject_edit_api' , async (req , res) => {
+  let subDetails = req.body.subDetails;
+  let subName = req.body.subName
+
+  var myBoard = subDetails["board"];
+  var myMedium = subDetails["medium"];
+  var myClass = subDetails["class"];
+
+  console.log(req.body);
+
+  if(subName !== ''){
+    let updateData = await SubModel.findOneAndUpdate(
+      { myBoard: myBoard, myClass: myClass, myMedium: myMedium },
+      { $pull: { mySubject: subName } },
+      { _id: 0, __v: 0 }
+    );
+    console.log(updateData);
+    res.json({message:subName + ' deleted.'})
   }
+
 })
 
 module.exports = router;
